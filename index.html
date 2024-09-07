@@ -238,6 +238,15 @@
         <div>
             <button id="patternHDBtn">הדפס לסירוגין </button>
         </div>
+        <div>חזרות בשורה:
+            <select id="numberDropdown">
+                <option value="10">10</option>
+                <option value="15">15</option>
+                <option value="20">20</option>
+                <option value="25">25</option>
+                <option value="30">30</option>
+            </select>
+        </div>
     </div>
     <div class="right-side">
         <canvas id="patternCanvas"></canvas>
@@ -448,7 +457,8 @@
             const patternCanvas = document.getElementById("patternCanvas");
             const patCtx = patternCanvas.getContext("2d");
 
-            function createPattern(patternType = "half", lineRepetitions = 10) {
+            function createPattern(patternType = "half") {
+                var lineRepetitions = getSelectedNumber();
                 canvas.discardActiveObject();
                 canvas.renderAll();
                 var trimmedCanvas = trimCanvas(canvas);
@@ -483,6 +493,13 @@
 
                 }
 
+            }
+
+            function getSelectedNumber() {
+                const dropdown = document.getElementById("numberDropdown");
+                const selectedValue = dropdown.value; // Get the value as a string
+                const selectedNumber = parseInt(selectedValue); // Convert to integer
+                return selectedNumber;
             }
 
             function isOdd(n) {
