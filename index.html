@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="he">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>Canvas Shapes with ColorPick.js</title>
+
+    <!-- קישור ל-CSS של ColorPick -->
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+
+    <style>
+        /*!
+*
+* ColorPick jQuery plugin
+* https://github.com/philzet/ColorPick.js
+*
+* Copyright (c) 2017-2019 Phil Zet (a.k.a. Phil Zakharchenko)
+* Licensed under the MIT License
+*
+*/
+
+        @font-face {
+            font-family: "Open Sans";
+            font-style: normal;
+            font-weight: 400;
+            src: local("Open Sans"), local("OpenSans"),
+                url(https://fonts.gstatic.com/s/opensans/v13/cJZKeOuBrn4kERxqtaUH3bO3LdcAZYWl9Si6vvxL-qU.woff) format("woff");
+        }
+
+        @font-face {
+            font-family: "Open Sans";
+            font-style: normal;
+            font-weight: 700;
+            src: local("Open Sans Bold"), local("OpenSans-Bold"),
+                url(https://fonts.gstatic.com/s/opensans/v13/k3k702ZOKiLJc3WVjuplzKRDOzjiPcYnFooOUGCOsRk.woff) format("woff");
+        }
+
+        /* Used as an anchor point to position the color picker */
+        .colorPickWrapper {
+            position: relative;
+            width: 0;
+            height: 0;
+        }
+
+        #colorPick * {
+            -webkit-transition: all linear 0.2s;
+            -moz-transition: all linear 0.2s;
+            -ms-transition: all linear 0.2s;
+            -o-transition: all linear 0.2s;
+            transition: all linear 0.2s;
+        }
+
+        #colorPick {
+            background: rgba(255, 255, 255, 0.85);
+            -webkit-backdrop-filter: blur(15px);
+            position: absolute;
+            border-radius: 5px;
+            box-shadow: 0px 3px 8px rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            font-family: "Open Sans", sans-serif;
+            width: 130px;
+            box-sizing: content-box;
+            z-index: 999;
+        }
+
+        #colorPick span {
+            user-select: none;
+            font-size: 9pt;
+            text-transform: uppercase;
+            font-weight: bold;
+            color: #bbb;
+            margin-bottom: 5px;
+            display: block;
+            clear: both;
+        }
+
+        .customColorHash {
+            border-radius: 5px;
+            height: 23px;
+            width: 122px;
+            margin: 1px 4px;
+            padding: 0 4px;
+            border: 1px solid #babbba;
+            outline: none;
+        }
+
+        .customColorHash.error {
+            border-color: #ff424c;
+            color: #ff424c;
+        }
+
+        .colorPickButton {
+            border-radius: 5px;
+            width: 17px;
+            height: 17px;
+            margin: 0px 3px;
+            cursor: pointer;
+            display: inline-block;
+            border: thin solid #eee;
+        }
+
+        .colorPickButton:hover {
+            transform: scale(1.1);
+        }
+
+        .colorPickDummy {
+            background: #fff;
+            border: 1px dashed #bbb;
+        }
+
+
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+
+        }
+
+        .left-side {
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        .right-side {
+            flex: 1;
+            background-color: #fff;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        .left-side canvas,
+        .right-side canvas {
+            border: 1px solid #000;
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+        }
+
+        #controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1px;
+            background-color: #f0f0f0;
+            width: 300px;
+            direction: rtl;
+        }
+
+        #controls button {
+            background: none;
+            border: none;
+            padding: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        #controls button i {
+            color: black;
+        }
+
+        #controls button:hover i {
+            color: #007BFF;
+        }
+
+        #controls input[type="file"] {
+            display: none;
+        }
+
+        #picker1 {
+            margin-left: 5px;
+        }
+
+        #canvasContainer {
+            width: 300px;
+            display: flex;
+            justify-content: left;
+            align-items: center;
+            margin-top: 3px;
+        }
+
+        button {
+            margin: 10px 0;
+            padding: 10px;
+            cursor: pointer;
+        }
+
+        canvas {
+            border: 1px solid black;
+        }
+
+        .picker {
+            border-radius: 5px;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            transition: all linear .2s;
+            border: thin solid #eee;
+        }
+
+        .picker:hover {
+            transform: scale(1.1);
+        }
+
+        #loadFromFile {
+            display: none;
+            /* הסתרת שם הקובץ מהתצוגה */
+        }
+    </style>
+</head>
+
+<body>
+    <div class="left-side">
+        <div id="controls">
+            <button id="addCircle" title="הוסף עיגול"><i class="fas fa-circle"></i></button>
+            <button id="addTriangle" title="הוסף משולש"><i class="fas fa-play"></i></button>
+            <button id="addSquare" title="הוסף ריבוע"><i class="fas fa-square"></i></button>
+            <i class="picker" id="picker1" title="בחר צבע"></i>
+            <button id="deleteShape" title="מחק צורה"><i class="fas fa-trash"></i></button>
+            <button id="undo" title="בטל פעולה"><i class="fas fa-undo"></i></button>
+            <button id="redo" title="חזור על פעולה"><i class="fas fa-redo"></i></button>
+            <button id="clearCanvas" title="נקה מסך"><i class="fas fa-eraser"></i></button>
+            <button id="saveToFile" title="שמור לקובץ"><i class="fas fa-save"></i></button>
+            <button id="loadFromFileButton" title="טעינת קובץ"><i class="fas fa-upload"></i></button>
+            <input type="file" id="loadFromFile" />
+
+        </div>
+        <div id="canvasContainer">
+            <canvas id="canvas" width="290" height="300"></canvas>
+        </div>
+        <div>
+            <button id="patternLinesBtn">הדפס שורות </button>
+        </div>
+        <div>
+            <button id="patternHDBtn">הדפס לסירוגין </button>
+        </div>
+    </div>
+    <div class="right-side">
+        <canvas id="patternCanvas"></canvas>
+    </div>
+
+    <script>
+        document.getElementById('loadFromFileButton').addEventListener('click', function () {
+            document.getElementById('loadFromFile').click();
+        });
+
+    </script>
+
+
+
+    <!-- קישורים לספריות JavaScript -->
+    <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.2.4/fabric.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/trim-canvas@0.1.2/build/index.min.js"></script>
+
+    <script>
+        /*!
+*
+* ColorPick jQuery plugin
+* https://github.com/philzet/ColorPick.js
+*
+* Copyright (c) 2017-2019 Phil Zet (a.k.a. Phil Zakharchenko)
+* Licensed under the MIT License
+*
+*/
+        (function ($) {
+
+            $.fn.colorPick = function (config) {
+
+                return this.each(function () {
+                    new $.colorPick(this, config || {});
+                });
+
+            };
+
+            $.colorPick = function (element, options) {
+                options = options || {};
+                this.options = $.extend({}, $.fn.colorPick.defaults, options);
+                if (options.str) {
+                    this.options.str = $.extend({}, $.fn.colorPick.defaults.str, options.str);
+                }
+                $.fn.colorPick.defaults = this.options;
+                this.color = this.options.initialColor.toUpperCase();
+                this.element = $(element);
+
+                var dataInitialColor = this.element.data('initialcolor');
+                if (dataInitialColor) {
+                    this.color = dataInitialColor;
+                    this.appendToStorage(this.color);
+                }
+
+                var uniquePalette = [];
+                $.each($.fn.colorPick.defaults.palette.map(function (x) { return x.toUpperCase() }), function (i, el) {
+                    if ($.inArray(el, uniquePalette) === -1) uniquePalette.push(el);
+                });
+
+                this.palette = uniquePalette;
+
+                return this.element.hasClass(this.options.pickrclass) ? this : this.init();
+            };
+
+            $.fn.colorPick.defaults = {
+                'initialColor': '#3498db',
+                'paletteLabel': '',
+                'allowRecent': false,
+                'recentMax': 5,
+                'allowCustomColor': false,
+                'palette': ["#FF0000", "#16a085", "#2ecc71", "#27ae60", "#3498db", "#2980b9", "#9b59b6", "#8e44ad", "#34495e", "#2c3e50", "#f1c40f", "#f39c12", "#e67e22", "#d35400", "#e74c3c", "#c0392b", "#ecf0f1", "#bdc3c7", "#95a5a6", "#7f8c8d"],
+                'onColorSelected': function () {
+                    this.element.css({ 'backgroundColor': this.color, 'color': this.color });
+                }
+            };
+
+            $.colorPick.prototype = {
+
+                init: function () {
+
+                    var self = this;
+                    var o = this.options;
+
+                    $.proxy($.fn.colorPick.defaults.onColorSelected, this)();
+
+                    this.element.click(function (event) {
+                        if (event.target != event.currentTarget) {
+                            return;
+                        }
+
+                        var offset = $(self.element).offset();
+
+                        event.preventDefault();
+                        self.show(self.element, event.pageX - offset.left, event.pageY - offset.top - 20);
+
+                        $('.customColorHash').val(self.color);
+
+                        $('.colorPickButton').click(function (event) {
+                            self.color = $(event.target).attr('hexValue');
+                            self.appendToStorage($(event.target).attr('hexValue'));
+                            self.hide();
+                            $.proxy(self.options.onColorSelected, self)();
+                            return false;
+                        });
+                        $('.customColorHash').click(function (event) {
+                            return false;
+                        }).keyup(function (event) {
+                            var hash = $(this).val();
+                            if (hash.indexOf('#') !== 0) {
+                                hash = "#" + hash;
+                            }
+                            if (/(^#[0-9A-F]{6}$)|(^#[0-9A-F]{3}$)/i.test(hash)) {
+                                self.color = hash;
+                                self.appendToStorage(hash);
+                                $.proxy(self.options.onColorSelected, self)();
+                                $(this).removeClass('error');
+                            } else {
+                                $(this).addClass('error');
+                            }
+                        });
+
+                        return false;
+                    }).blur(function () {
+                        self.element.val(self.color);
+                        $.proxy(self.options.onColorSelected, self)();
+                        self.hide();
+                        return false;
+                    });
+
+                    $(document).on('click', function (event) {
+                        if ($.contains(self.element[0], event.target)) {
+                            return;
+                        }
+                        self.hide();
+                        return true;
+                    });
+
+                    return this;
+                },
+
+                appendToStorage: function (color) {
+                    if ($.fn.colorPick.defaults.allowRecent === true) {
+                        var storedColors = JSON.parse(localStorage.getItem("colorPickRecentItems"));
+                        if (storedColors == null) {
+                            storedColors = [];
+                        }
+                        if ($.inArray(color, storedColors) == -1) {
+                            storedColors.unshift(color);
+                            storedColors = storedColors.slice(0, $.fn.colorPick.defaults.recentMax)
+                            localStorage.setItem("colorPickRecentItems", JSON.stringify(storedColors));
+                        }
+                    }
+                },
+
+                show: function (element, left, top) {
+
+                    $(".colorPickWrapper").remove();
+
+                    $(element).prepend('<div class="colorPickWrapper"><div id="colorPick" style="display:none;top:' + top + 'px;left:' + left + 'px"><span>' + $.fn.colorPick.defaults.paletteLabel + '</span></div></div>');
+
+                    jQuery.each(this.palette, function (index, item) {
+                        $("#colorPick").append('<div class="colorPickButton" hexValue="' + item + '" style="background:' + item + '"></div>');
+                    });
+                    if ($.fn.colorPick.defaults.allowCustomColor === true) {
+                        $("#colorPick").append('<input type="text" style="margin-top:5px" class="customColorHash" />');
+                    }
+                    if ($.fn.colorPick.defaults.allowRecent === true) {
+                        $("#colorPick").append('<span style="margin-top:5px">Recent:</span>');
+                        if (JSON.parse(localStorage.getItem("colorPickRecentItems")) == null || JSON.parse(localStorage.getItem("colorPickRecentItems")) == []) {
+                            $("#colorPick").append('<div class="colorPickButton colorPickDummy"></div>');
+                        } else {
+                            jQuery.each(JSON.parse(localStorage.getItem("colorPickRecentItems")), function (index, item) {
+                                $("#colorPick").append('<div class="colorPickButton" hexValue="' + item + '" style="background:' + item + '"></div>');
+                                if (index == $.fn.colorPick.defaults.recentMax - 1) {
+                                    return false;
+                                }
+                            });
+                        }
+                    }
+                    $("#colorPick").fadeIn(200);
+                },
+
+                hide: function () {
+                    $(".colorPickWrapper").fadeOut(200, function () {
+                        $(".colorPickWrapper").remove();
+                        return this;
+                    });
+                },
+
+            };
+
+        }(jQuery));
+
+    </script>
+    <script>
+
+
+
+
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const canvas = new fabric.Canvas('canvas');
+            let selectedColor = '#FF0000'; // צבע ברירת המחדל לצורות חדשות
+            let history = []; // רשימת ההיסטוריה
+            let currentStateIndex = -1; // מצביע למצב הנוכחי בהיסטוריה
+            const patternCanvas = document.getElementById("patternCanvas");
+            const patCtx = patternCanvas.getContext("2d");
+
+            function createPattern(patternType = "half", lineRepetitions = 10) {
+                canvas.discardActiveObject();
+                canvas.renderAll();
+                var trimmedCanvas = trimCanvas(canvas);
+                var sample = trimmedCanvas.getContext("2d");
+                var sampleWidth = trimmedCanvas.width;
+                var sampleHeight = trimmedCanvas.height;
+
+                var targetWidth = Math.floor(patternCanvas.width / lineRepetitions);
+                var targetHeight = Math.floor((targetWidth / sampleWidth) * sampleHeight);
+                var currHeight = 0;
+                var halfDropOffset = Math.floor(targetWidth / 2);
+                patCtx.clearRect(0, 0, patternCanvas.width, patternCanvas.height);
+                var j = 0;
+
+                while (currHeight < patternCanvas.height) {
+                    for (i = 0; i < lineRepetitions; i++) {
+                        if (patternType == 'full') {
+                            patCtx.drawImage(trimmedCanvas, i * targetWidth, currHeight, targetWidth, targetHeight);
+                        }
+                        else {
+                            if ((i == 0) && (isOdd(j))) {
+                                patCtx.drawImage(trimmedCanvas, Math.floor(sampleWidth / 2), 0, Math.floor(sampleWidth / 2), sampleHeight, 0, currHeight, halfDropOffset, targetHeight);
+                            }
+
+                            patCtx.drawImage(trimmedCanvas, i * targetWidth + isOdd(j) * halfDropOffset, currHeight, targetWidth, targetHeight);
+
+                        }
+
+                    }
+                    j++;
+                    currHeight += targetHeight;
+
+                }
+
+            }
+
+            function isOdd(n) {
+                return Math.abs(n % 2);
+            }
+
+            function trimCanvas(c) {
+                var ctx = c.getContext('2d'),
+                    copy = document.createElement('canvas').getContext('2d'),
+                    pixels = ctx.getImageData(0, 0, c.width, c.height),
+                    l = pixels.data.length,
+                    i,
+                    bound = {
+                        top: null,
+                        left: null,
+                        right: null,
+                        bottom: null
+                    },
+                    x, y;
+
+                for (i = 0; i < l; i += 4) {
+                    if (pixels.data[i + 3] !== 0) {
+                        x = (i / 4) % c.width;
+                        y = ~~((i / 4) / c.width);
+
+                        if (bound.top === null) {
+                            bound.top = y;
+                        }
+
+                        if (bound.left === null) {
+                            bound.left = x;
+                        } else if (x < bound.left) {
+                            bound.left = x;
+                        }
+
+                        if (bound.right === null) {
+                            bound.right = x;
+                        } else if (bound.right < x) {
+                            bound.right = x;
+                        }
+
+                        if (bound.bottom === null) {
+                            bound.bottom = y;
+                        } else if (bound.bottom < y) {
+                            bound.bottom = y;
+                        }
+                    }
+                }
+
+                var trimHeight = bound.bottom - bound.top,
+                    trimWidth = bound.right - bound.left,
+                    trimmed = ctx.getImageData(bound.left, bound.top, trimWidth, trimHeight);
+
+                copy.canvas.width = trimWidth;
+                copy.canvas.height = trimHeight;
+                copy.putImageData(trimmed, 0, 0);
+
+
+
+
+                // open new window with trimmed image:
+                return copy.canvas;
+            }
+
+            // פונקציה לשמירת מצב הקנבס
+            function saveState() {
+                const canvasState = JSON.stringify(canvas);
+                if (currentStateIndex < history.length - 1) {
+                    history = history.slice(0, currentStateIndex + 1); // חיתוך ההיסטוריה לאחר המצב הנוכחי
+                }
+                history.push(canvasState);
+                currentStateIndex++;
+            }
+
+            // פונקציה לטעינת מצב הקנבס
+            function loadState(state) {
+                canvas.loadFromJSON(state, function () {
+                    canvas.renderAll();
+                });
+            }
+
+            // טעינת המצב הקודם (UNDO)
+            function undo() {
+                if (currentStateIndex > 0) {
+                    currentStateIndex--;
+                    loadState(history[currentStateIndex]);
+                }
+            }
+
+            // טעינת המצב הבא (REDO)
+            function redo() {
+                if (currentStateIndex < history.length - 1) {
+                    currentStateIndex++;
+                    loadState(history[currentStateIndex]);
+                }
+            }
+
+            // פונקציה ליצירת מיקום אקראי בתוך הקנבס
+            function getRandomPosition(max) {
+                return Math.floor(Math.random() * max) + 50;
+            }
+
+            // Initialize ColorPick
+            $("#picker1").colorPick({
+                'initialColor': selectedColor,
+                'palette': ["#FF0000", "#FFFF00", "#00FF00", "#9900CC", "#0000FF"],
+                'onColorSelected': function () {
+                    selectedColor = this.color;
+                    this.element.css({ 'backgroundColor': this.color, 'color': this.color });
+
+                    // שינוי הצבע של הצורה שנבחרה אם יש כזו
+                    const activeObject = canvas.getActiveObject();
+                    if (activeObject) {
+                        activeObject.set('fill', selectedColor);
+                        canvas.renderAll(); // רענון הקנבס
+                        saveState(); // שמירת מצב
+                    }
+                }
+            });
+
+            document.getElementById('patternLinesBtn').addEventListener('click', function () {
+                createPattern('full');
+            });
+
+            document.getElementById('patternHDBtn').addEventListener('click', function () {
+                createPattern('half');
+            });
+
+
+            // הוספת עיגול
+            document.getElementById('addCircle').addEventListener('click', () => {
+                const circle = new fabric.Circle({
+                    radius: 30,
+                    fill: selectedColor,
+                    left: getRandomPosition(canvas.width - 100), // מיקום אקראי בציר X
+                    top: getRandomPosition(canvas.height - 100), // מיקום אקראי בציר Y
+                    originX: 'center',
+                    originY: 'center',
+                    hasControls: true,
+                    hasBorders: true,
+                    lockScalingFlip: true, // מניעת היפוך
+                    lockUniScaling: true, // שמירת פרופורציות
+
+                });
+                circle.setControlsVisibility({
+                    ml: false,
+                    mr: false,
+                    mt: false,
+                    mb: false
+                });
+                canvas.add(circle);
+                saveState(); // שמירת מצב
+            });
+
+            // הוספת משולש
+            document.getElementById('addTriangle').addEventListener('click', () => {
+                const triangle = new fabric.Triangle({
+                    width: 60,
+                    height: 60,
+                    fill: selectedColor,
+                    left: getRandomPosition(canvas.width - 100), // מיקום אקראי בציר X
+                    top: getRandomPosition(canvas.height - 100), // מיקום אקראי בציר Y
+                    originX: 'center',
+                    originY: 'center',
+                    hasControls: true,
+                    hasBorders: true,
+                    lockScalingFlip: true, // מניעת היפוך
+                    lockUniScaling: true // שמירת פרופורציות
+                });
+                triangle.setControlsVisibility({
+                    ml: false,
+                    mr: false,
+                    mt: false,
+                    mb: false
+                });
+                canvas.add(triangle);
+                saveState(); // שמירת מצב
+            });
+
+            // הוספת ריבוע
+            document.getElementById('addSquare').addEventListener('click', () => {
+                const square = new fabric.Rect({
+                    width: 60,
+                    height: 60,
+                    fill: selectedColor,
+                    left: getRandomPosition(canvas.width - 100), // מיקום אקראי בציר X
+                    top: getRandomPosition(canvas.height - 100), // מיקום אקראי בציר Y
+                    originX: 'center',
+                    originY: 'center',
+                    hasControls: true,
+                    hasBorders: true,
+                    lockScalingFlip: true, // מניעת היפוך
+                    lockUniScaling: true // שמירת פרופורציות
+                });
+                square.setControlsVisibility({
+                    ml: false,
+                    mr: false,
+                    mt: false,
+                    mb: false
+                });
+                canvas.add(square);
+                saveState(); // שמירת מצב
+            });
+
+            // מחיקת צורה נבחרת
+            document.getElementById('deleteShape').addEventListener('click', function () {
+                const activeObject = canvas.getActiveObject();
+                if (activeObject) {
+                    canvas.remove(activeObject);
+                    canvas.discardActiveObject();
+                    canvas.renderAll();
+                    saveState(); // שמירת מצב
+                }
+            });
+
+            // כפתור UNDO
+            document.getElementById('undo').addEventListener('click', function () {
+                undo();
+            });
+
+            // כפתור REDO
+            document.getElementById('redo').addEventListener('click', function () {
+                redo();
+            });
+
+            // כפתור נקה מסך
+            document.getElementById('clearCanvas').addEventListener('click', function () {
+                canvas.clear();
+                saveState();
+            });
+
+            // שמירת מצב בשינוי גודל או סיבוב
+            canvas.on('object:modified', function () {
+                saveState(); // שמירת מצב לאחר שינוי גודל או סיבוב
+            });
+
+            // keep object in bundries
+            canvas.on('object:moving', function (e) {
+                var obj = e.target;
+                keepObjInCanvas(obj);
+
+            });
+
+
+            function keepObjInCanvas(obj) {
+
+                obj.setCoords();
+                var curZoom = obj.canvas.getZoom();
+
+                //
+                // if object is too big ignore
+                if (obj.getScaledHeight() > obj.canvas.height || obj.getScaledWidth() > obj.canvas.width) {
+                    return;
+                }
+
+                // top-left  corner
+                if (obj.getBoundingRect().top < 0 || obj.getBoundingRect().left < 0) {
+                    obj.top = Math.max(obj.top * curZoom, obj.top * curZoom - obj.getBoundingRect().top) / curZoom;
+                    obj.left = Math.max(obj.left * curZoom, obj.left * curZoom - obj.getBoundingRect().left) / curZoom;
+                }
+                // bot-right corner
+                if (obj.getBoundingRect().top + obj.getBoundingRect().height > obj.canvas.height || obj.getBoundingRect().left + obj.getBoundingRect().width > obj.canvas.width) {
+                    obj.top = Math.min(obj.top * curZoom, obj.canvas.height - obj.getBoundingRect().height + obj.top * curZoom - obj.getBoundingRect().top) / curZoom;
+                    obj.left = Math.min(obj.left * curZoom, obj.canvas.width - obj.getBoundingRect().width + obj.left * curZoom - obj.getBoundingRect().left) / curZoom;
+                }
+            }
+
+            // הזזה עם מקשי חיצים
+            document.addEventListener('keydown', function (e) {
+                const activeObject = canvas.getActiveObject();
+                if (activeObject) {
+                    switch (e.key) {
+                        case 'ArrowUp':
+                            activeObject.top -= 10;
+                            break;
+                        case 'ArrowDown':
+                            activeObject.top += 10;
+                            break;
+                        case 'ArrowLeft':
+                            activeObject.left -= 10;
+                            break;
+                        case 'ArrowRight':
+                            activeObject.left += 10;
+                            break;
+                        case 'Delete':
+                            canvas.remove(activeObject);
+                            break;
+                    }
+                    activeObject.setCoords(); // עדכון מיקום האובייקט
+                    keepObjInCanvas(activeObject);
+                    canvas.renderAll(); // רענון הקנבס
+                    saveState(); // שמירת מצב
+                }
+            });
+
+            // שמירת המצב הראשוני של הקנבס
+            saveState();
+
+            // פונקציה לשמירת הקנבס לקובץ JSON
+            document.getElementById('saveToFile').addEventListener('click', function () {
+                const json = JSON.stringify(canvas.toDatalessJSON());
+                const blob = new Blob([json], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'canvas_state.json';
+                a.click();
+                URL.revokeObjectURL(url);
+            });
+
+            // פונקציה לטעינת קובץ JSON
+            document.getElementById('loadFromFile').addEventListener('change', function (e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function (event) {
+                        const json = event.target.result;
+                        canvas.loadFromJSON(json, function () {
+                            canvas.renderAll();
+                        });
+                    };
+                    reader.readAsText(file);
+
+                    // איפוס השדה לאחר טעינת הקובץ
+                    e.target.value = '';
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>
